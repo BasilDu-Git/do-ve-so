@@ -1,0 +1,56 @@
+name: Update Lottery Results (32 Days)
+
+on:
+  schedule:
+    # Chạy lúc 11:35 UTC mỗi ngày (tương ứng 18:35 giờ Việt Nam - Asia/Ho_Chi_Minh)
+    - cron: '35 11 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Ngày cần lấy kết quả (YYYY-MM-DD, để trống = hôm nay giờ VN)'
+        required: false
+        default: ''
+      backfill_days:
+        description: 'Số ngày lùi lại cần cập nhật bổ sung (VD: 1..32, mặc định 1)'
+        required: false
+        default: '1'
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-and-save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch lottery results from xskt.com.vn and prune >32 days
+        env:
+          TZ: Asia/Ho_Chi_Minh
+          TARGET_DATE: ${{ github.event.inputs.date }}
+          BACKFILL_DAYS: ${{ github.event.inputs.backfill_days }}
+        run: node scripts/fetch-lottery.js
+
+      - name: Commit and push updated lottery JSON files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "Không có thay đổi mới trong thư mục data/."
+          else
+            TODAY_VN=$(TZ=Asia/Ho_Chi_Minh date +%Y-%m-%d)
+            git commit -m "chore(data): cập nhật kết quả xổ số ngày ${TODAY_VN}"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push origin HEAD:"${GITHUB_REF_NAME}"
+          fi
