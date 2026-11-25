@@ -742,6 +742,7 @@
     els.step2Box = document.getElementById('step2Box');
     els.noStationAlert = document.getElementById('noStationAlert');
     els.drawDateInput = document.getElementById('drawDateInput');
+    els.drawDatePicker = document.getElementById('drawDatePicker');
     els.dateHelperText = document.getElementById('dateHelperText');
     els.ticketNumberInput = document.getElementById('ticketNumberInput');
     els.clearTicketBtn = document.getElementById('clearTicketBtn');
@@ -796,8 +797,45 @@
   function syncDatePickerLimits() {
     const vn = getVNNow();
     const minDate = subtractDays(vn.ymd, MAX_DAYS_BACK);
-    els.drawDateInput.max = vn.ymd;
-    els.drawDateInput.min = minDate;
+    if (els.drawDatePicker) {
+      els.drawDatePicker.max = vn.ymd;
+      els.drawDatePicker.min = minDate;
+    }
+  }
+
+  // --- Ô ngày hiển thị DD/MM/YYYY, giá trị nội bộ vẫn là YYYY-MM-DD ---
+  function ymdToDMY(ymd) {
+    if (!parseYMD(ymd)) return '';
+    const [y, m, d] = ymd.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function dmyToYmd(text) {
+    const m = String(text || '').trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if (!m) return null;
+    const ymd = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    return parseYMD(ymd) ? ymd : null;
+  }
+
+  function getSelectedYmd() {
+    return dmyToYmd(els.drawDateInput.value) || '';
+  }
+
+  // Đặt ngày đang chọn cho cả ô hiển thị và lịch gốc; reload=true thì tải lại dữ liệu ngày đó
+  function setSelectedDate(ymd, reload) {
+    els.drawDateInput.value = ymdToDMY(ymd);
+    if (els.drawDatePicker) els.drawDatePicker.value = ymd;
+    if (!reload) return;
+    state.selectedDate = ymd;
+    state.lastCheckHighlight = null;
+    els.checkResultSection.hidden = true;
+    loadDateData(ymd);
+  }
+
+  function openNativeDatePicker() {
+    const picker = els.drawDatePicker;
+    if (!picker || typeof picker.showPicker !== 'function') return;
+    try { picker.showPicker(); } catch (_) {}
   }
 
   function getTodayPhase(vn) {
@@ -1375,7 +1413,7 @@
     evt.preventDefault();
 
     const vn = getVNNow();
-    const ymd = els.drawDateInput.value.trim();
+    const ymd = getSelectedYmd();
 
     if (!parseYMD(ymd)) {
       renderValidationMessage('Ngày không hợp lệ', 'Vui lòng chọn ngày mở thưởng hợp lệ ở Bước 1.');
@@ -1524,12 +1562,44 @@
       els.themeToggleBtn.addEventListener('click', toggleTheme);
     }
 
-    // Bước 1: Đổi ngày mở thưởng -> tự đổi danh sách đài và chọn sẵn đài đầu tiên
-    els.drawDateInput.addEventListener('change', () => {
-      state.selectedDate = els.drawDateInput.value;
-      state.lastCheckHighlight = null;
-      els.checkResultSection.hidden = true;
-      loadDateData(state.selectedDate);
+    // Bước 1: Chọn ngày trên lịch -> điền DD/MM/YYYY, tự đổi danh sách đài và chọn sẵn đài đầu tiên
+    els.drawDatePicker.addEventListener('change', () => {
+      const ymd = els.drawDatePicker.value;
+      if (!parseYMD(ymd)) {
+        setSelectedDate(state.selectedDate, false);
+        return;
+      }
+      setSelectedDate(ymd, true);
+    });
+
+    // Bấm vào ô ngày -> mở lịch (trình duyệt hỗ trợ showPicker); vẫn cho gõ tay DD/MM/YYYY
+    els.drawDateInput.addEventListener('click', openNativeDatePicker);
+
+    // Gõ tay: tự chèn dấu "/" và nhận ngày khi đủ DD/MM/YYYY
+    els.drawDateInput.addEventListener('input', evt => {
+      const isDeleting = evt.inputType && evt.inputType.startsWith('delete');
+      let v = els.drawDateInput.value.replace(/[^\d\/]/g, '');
+      if (!isDeleting) {
+        const digits = v.replace(/\//g, '').slice(0, 8);
+        v = digits.length > 4
+          ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+          : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+      }
+      els.drawDateInput.value = v.slice(0, 10);
+      const ymd = dmyToYmd(els.drawDateInput.value);
+      if (ymd && ymd !== state.selectedDate) setSelectedDate(ymd, true);
+    });
+
+    // Rời ô mà ngày gõ chưa hợp lệ -> trả lại ngày đang chọn
+    els.drawDateInput.addEventListener('blur', () => {
+      const ymd = dmyToYmd(els.drawDateInput.value);
+      if (!ymd) {
+        setSelectedDate(state.selectedDate, false);
+      } else if (ymd !== state.selectedDate) {
+        setSelectedDate(ymd, true);
+      } else {
+        setSelectedDate(ymd, false);
+      }
     });
 
     // Bước 2: Bấm chọn đài (hoặc nhấn lại vào đài đang chọn để bỏ chọn)
@@ -1599,7 +1669,7 @@
     syncDatePickerLimits();
 
     state.selectedDate = vn.ymd;
-    els.drawDateInput.value = vn.ymd;
+    setSelectedDate(vn.ymd, false);
 
     bindEvents();
     renderClockAndLiveState();

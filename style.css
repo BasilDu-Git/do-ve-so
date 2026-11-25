@@ -204,7 +204,14 @@ html[data-theme="dark"] .site-header {
   font-size: 0.88rem;
   font-weight: 500;
   letter-spacing: 0.01em;
+  line-height: 1.35;
   color: rgba(255, 255, 255, 0.9);
+}
+
+.brand-text p.author {
+  margin-top: 4px;
+  font-weight: 600;
+  color: #fde68a;
 }
 
 .header-actions {
@@ -630,9 +637,59 @@ html[data-theme="dark"] .station-chip.is-selected {
 }
 
 #drawDateInput {
-  padding-right: 14px;
+  padding-right: 56px;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
   cursor: pointer;
+}
+
+/* Nút lịch bên phải ô ngày: input date gốc trong suốt phủ lên icon để bấm là mở lịch */
+.date-picker-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--primary);
+  background: var(--primary-soft);
+  pointer-events: none;
+  transition: background-color 0.18s ease, transform 0.18s ease;
+}
+
+.date-native-picker {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px !important;
+  height: 38px !important;
+  padding: 0 !important;
+  margin: 0;
+  border: none !important;
+  opacity: 0;
+  cursor: pointer;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.date-native-picker::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.date-wrap:hover .date-picker-btn {
+  background: var(--bg-chip-hover);
+  transform: translateY(-50%) scale(1.06);
 }
 
 #ticketNumberInput {
