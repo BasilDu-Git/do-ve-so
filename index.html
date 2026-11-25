@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Dò Vé Số - Nhanh Chóng - Tiện Lợi - Chính Xác</title>
+  <meta name="description" content="Ứng dụng Dò Vé Số Kiến Thiết 3 Miền Nam - Trung - Bắc nhanh chóng, tiện lợi, chính xác, cập nhật kết quả trực tiếp hàng ngày và lưu trữ 32 ngày gần nhất.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('doveso_theme');
+        if (saved === 'dark' || saved === 'light') {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      } catch (_) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand-text">
+        <h1>DÒ VÉ SỐ</h1>
+        <p>Nhanh Chóng - Tiện Lợi - Chính Xác</p>
+        <p class="author">- By Khang Dư</p>
+      </div>
+
+      <div class="header-actions">
+        <div class="vn-clock" id="vnClock" aria-label="Giờ Việt Nam hiện tại">--:--:-- • --/--/----</div>
+        <button
+          type="button"
+          class="theme-toggle-btn"
+          id="themeToggleBtn"
+          aria-label="Chuyển chế độ Sáng / Tối"
+          title="Chuyển chế độ Sáng / Tối"
+        >
+          <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <!-- FORM DÒ VÉ THEO LUỒNG 3 BƯỚC RÕ RÀNG -->
+    <section class="card checker-card" aria-labelledby="checkerHeading">
+      <div class="card-header">
+        <h2 id="checkerHeading">Tra Cứu Vé Số Theo 3 Bước</h2>
+        <span class="retention-tag">Lưu trữ 32 ngày gần nhất</span>
+      </div>
+
+      <form id="ticketForm" class="ticket-form" novalidate autocomplete="off">
+        <div class="steps-flow">
+          <!-- BƯỚC 1: CHỌN NGÀY MỞ THƯỞNG -->
+          <div class="step-box step-1-box" id="step1Box">
+            <div class="step-header">
+              <span class="step-number" aria-hidden="true">1</span>
+              <label for="drawDateInput" class="step-title">Bước 1: Chọn ngày mở thưởng</label>
+            </div>
+            <div class="step-body">
+              <div class="input-wrap">
+                <input
+                  type="text"
+                  id="drawDateInput"
+                  name="drawDate"
+                  placeholder="dd/mm/yyyy"
+                  autocomplete="off"
+                  required
+                >
+                <input type="date" id="drawDatePicker" class="visually-hidden" style="display:none;" />
+              </div>
+              <small class="field-hint" id="dateHelperText">Theo giờ Việt Nam (GMT+7)</small>
+            </div>
+          </div>
+
+          <!-- BƯỚC 2: CHỌN ĐÀI MỞ THƯỞNG (NỔI BẬT, BẮT BUỘC) -->
+          <div class="step-box step-2-box" id="step2Box">
+            <div class="step-header step-2-header">
+              <span class="step-number step-number-highlight" aria-hidden="true">2</span>
+              <div class="step-2-heading-group">
+                <div class="step-2-title-row">
+                  <span class="step-2-icon" aria-hidden="true">🎯</span>
+                  <h3 class="step-title step-2-title">Bước 2: Chọn đài mở thưởng <span class="required-pill">Bắt buộc</span></h3>
+                </div>
+                <p class="step-2-warning">
+                  <span aria-hidden="true">⚠️</span>
+                  <span>Vui lòng chọn đài bạn muốn dò trước khi nhấn nút KIỂM TRA</span>
+                </p>
+              </div>
+            </div>
+
+            <div class="step-body">
+              <div class="no-station-alert" id="noStationAlert" role="alert" hidden>
+                Bạn chưa chọn đài, vui lòng chọn đài trước!
+              </div>
+              <div class="station-chips" id="todayStationsChips" role="group" aria-label="Chọn đài mở thưởng"></div>
+            </div>
+          </div>
+
+          <!-- BƯỚC 3: NHẬP MÃ SỐ DỰ THƯỞNG -->
+          <div class="step-box step-3-box" id="step3Box">
+            <div class="step-header">
+              <span class="step-number" aria-hidden="true">3</span>
+              <div class="step-3-label-row">
+                <label for="ticketNumberInput" class="step-title">Bước 3: Nhập mã số dự thưởng</label>
+                <span class="digit-counter" id="digitCounter">0/6 số</span>
+              </div>
+            </div>
+
+            <div class="step-body">
+              <div class="input-wrap">
+                <input
+                  type="text"
+                  id="ticketNumberInput"
+                  name="ticketNumber"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  maxlength="6"
+                  placeholder="Nhập 6 chữ số (VD: 279577)"
+                  required
+                >
+                <button type="button" class="icon-clear-btn" id="clearTicketBtn" title="Xóa số vé" aria-label="Xóa số vé" hidden>&times;</button>
+              </div>
+              <small class="field-hint" id="ticketLengthHint">Vé số Miền Nam gồm 6 chữ số (000000 - 999999)</small>
+
+              <!-- Tùy chọn ký hiệu vé Đặc biệt khi chọn đài Miền Bắc -->
+              <div class="mb-symbol-panel" id="mbSymbolPanel" hidden>
+                <span class="mb-symbol-title">Ký hiệu vé Miền Bắc (phân biệt Giải ĐB 500 triệu &amp; Phụ ĐB 25 triệu khi trùng 5 số ĐB):</span>
+                <div class="mb-symbol-controls">
+                  <label class="radio-pill">
+                    <input type="radio" name="mbSymbolMode" value="match" checked>
+                    <span>Trùng ký hiệu ĐB (500 triệu)</span>
+                  </label>
+                  <label class="radio-pill">
+                    <input type="radio" name="mbSymbolMode" value="diff">
+                    <span>Khác ký hiệu - Phụ ĐB (25 triệu)</span>
+                  </label>
+                  <div class="mb-code-input-wrap">
+                    <input
+                      type="text"
+                      id="mbSymbolInput"
+                      maxlength="6"
+                      placeholder="Hoặc nhập mã (VD: 1ZN)"
+                      aria-label="Nhập ký hiệu vé Miền Bắc"
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- XÁC NHẬN ĐÀI ĐANG DÒ & NÚT KIỂM TRA -->
+        <div class="submit-row">
+          <p class="active-station-confirm" id="activeStationConfirm">
+            Bạn đang dò đài: <strong id="confirmStationText">--</strong>
+          </p>
+
+          <button type="submit" id="checkBtn" class="btn-check">KIỂM TRA</button>
+
+          <p class="station-lock-hint" id="stationLockHint" hidden>
+            Chọn đài ở Bước 2 để mở khóa nút kiểm tra
+          </p>
+          <p class="lock-reason" id="lockReasonText" hidden></p>
+        </div>
+      </form>
+    </section>
+
+    <!-- KẾT QUẢ DÒ VÉ -->
+    <section id="checkResultSection" class="check-result-section" aria-live="polite" hidden></section>
+
+    <!-- BẢNG KẾT QUẢ XỔ SỐ -->
+    <section class="card results-card" id="resultsBoard" aria-labelledby="resultsHeading">
+      <div class="results-top-bar">
+        <div class="results-title-block">
+          <h2 id="resultsHeading">Bảng Kết Quả Mở Thưởng</h2>
+          <p class="results-subtitle" id="resultsDateLabel">Ngày --/--/----</p>
+        </div>
+
+        <div class="status-banner" id="drawStatusBanner" data-state="ready">
+          <span class="status-dot" aria-hidden="true"></span>
+          <div class="status-text-wrap">
+            <strong class="status-label" id="drawStatusText">Đang tải dữ liệu...</strong>
+            <span class="status-sub" id="countdownText" hidden></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 Tab Miền Nam / Miền Trung / Miền Bắc -->
+      <div class="region-tabs" id="regionTabs" role="tablist" aria-label="Chọn miền xem kết quả">
+        <button
+          type="button"
+          class="region-tab active"
+          role="tab"
+          aria-selected="true"
+          data-region="MN"
+          id="tabMN"
+        >
+          Miền Nam
+        </button>
+        <button
+          type="button"
+          class="region-tab"
+          role="tab"
+          aria-selected="false"
+          data-region="MT"
+          id="tabMT"
+        >
+          Miền Trung
+        </button>
+        <button
+          type="button"
+          class="region-tab"
+          role="tab"
+          aria-selected="false"
+          data-region="MB"
+          id="tabMB"
+        >
+          Miền Bắc
+        </button>
+      </div>
+
+      <div class="table-viewport" id="resultTableContainer" role="tabpanel">
+        <!-- Render động từ app.js -->
+      </div>
+    </section>
+
+    <!-- BẢNG THAM KHẢO CƠ CẤU GIẢI THƯỞNG -->
+    <details class="card prize-guide">
+      <summary>Xem cơ cấu giải thưởng Vé Số Kiến Thiết 3 Miền (Cộng dồn mọi giải trúng)</summary>
+      <div class="prize-guide-grid">
+        <div class="prize-guide-col">
+          <h3>Miền Nam &amp; Miền Trung (Vé 6 số)</h3>
+          <ul>
+            <li><span>Giải Đặc biệt (trùng 6 số)</span><strong>2.000.000.000 đ</strong></li>
+            <li><span>Giải Phụ đặc biệt (sai số đầu, đúng 5 số cuối ĐB)</span><strong>50.000.000 đ</strong></li>
+            <li><span>Giải Nhất (trùng 5 số cuối)</span><strong>30.000.000 đ</strong></li>
+            <li><span>Giải Nhì (trùng 5 số cuối)</span><strong>15.000.000 đ</strong></li>
+            <li><span>Giải Ba (trùng 5 số cuối)</span><strong>10.000.000 đ</strong></li>
+            <li><span>Giải Khuyến khích (đúng số đầu, sai 1 trong 5 số còn lại ĐB)</span><strong>6.000.000 đ</strong></li>
+            <li><span>Giải Tư (trùng 5 số cuối)</span><strong>3.000.000 đ</strong></li>
+            <li><span>Giải Năm (trùng 4 số cuối)</span><strong>1.000.000 đ</strong></li>
+            <li><span>Giải Sáu (trùng 4 số cuối)</span><strong>400.000 đ</strong></li>
+            <li><span>Giải Bảy (trùng 3 số cuối)</span><strong>200.000 đ</strong></li>
+            <li><span>Giải Tám (trùng 2 số cuối)</span><strong>100.000 đ</strong></li>
+          </ul>
+        </div>
+        <div class="prize-guide-col">
+          <h3>Miền Bắc (Vé 5 số)</h3>
+          <ul>
+            <li><span>Giải Đặc biệt (trùng 5 số + đúng ký hiệu)</span><strong>500.000.000 đ</strong></li>
+            <li><span>Giải Phụ đặc biệt (trùng 5 số ĐB, khác ký hiệu)</span><strong>25.000.000 đ</strong></li>
+            <li><span>Giải Nhất (trùng 5 số)</span><strong>10.000.000 đ</strong></li>
+            <li><span>Giải Nhì (trùng 5 số)</span><strong>5.000.000 đ</strong></li>
+            <li><span>Giải Ba (trùng 5 số)</span><strong>1.000.000 đ</strong></li>
+            <li><span>Giải Tư (trùng 4 số cuối)</span><strong>400.000 đ</strong></li>
+            <li><span>Giải Năm (trùng 4 số cuối)</span><strong>200.000 đ</strong></li>
+            <li><span>Giải Sáu (trùng 3 số cuối)</span><strong>100.000 đ</strong></li>
+            <li><span>Giải Bảy (trùng 2 số cuối)</span><strong>40.000 đ</strong></li>
+            <li><span>Giải Khuyến khích (trùng 2 số cuối Giải ĐB)</span><strong>40.000 đ</strong></li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Dò Vé Số Kiến Thiết 3 Miền • Thời hạn lĩnh thưởng vé trúng là 30 ngày kể từ ngày mở thưởng.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
