@@ -668,44 +668,6 @@
     return skeleton;
   }
 
-  function fnv1aDigits(seed, digits) {
-    let h = 0x811c9dc5;
-    for (let i = 0; i < seed.length; i++) {
-      h ^= seed.charCodeAt(i);
-      h = Math.imul(h, 0x01000193) >>> 0;
-    }
-    const mod = Math.pow(10, digits);
-    return String(h % mod).padStart(digits, '0');
-  }
-
-  function buildLocalFileProtocolFallback(ymd) {
-    const skeleton = createEmptyDaySkeleton(ymd);
-    const suffixes = ['ZN', 'LM', 'QT', 'HP', 'BN', 'TB', 'ND'];
-    const dow = skeleton.dayOfWeek;
-
-    ['MN', 'MT'].forEach(reg => {
-      skeleton.regions[reg].forEach(st => {
-        PRIZE_ROWS_MN_MT.forEach(spec => {
-          st.prizes[spec.key] = Array.from({ length: spec.count }, (_, idx) =>
-            fnv1aDigits(`${ymd}:${st.code}:${spec.key}:${idx}`, spec.digits)
-          );
-        });
-      });
-    });
-
-    skeleton.regions.MB.forEach(st => {
-      const sfx = suffixes[dow] || 'ZN';
-      st.maDB = [`1${sfx}`, `4${sfx}`, `7${sfx}`, `10${sfx}`, `12${sfx}`, `15${sfx}`];
-      PRIZE_ROWS_MB.forEach(spec => {
-        st.prizes[spec.key] = Array.from({ length: spec.count }, (_, idx) =>
-          fnv1aDigits(`${ymd}:mien-bac:${spec.key}:${idx}`, spec.digits)
-        );
-      });
-    });
-
-    return skeleton;
-  }
-
   function isStationComplete(stationData, region) {
     if (!stationData || !stationData.prizes) return false;
     const rows = region === 'MB' ? PRIZE_ROWS_MB : PRIZE_ROWS_MN_MT;
@@ -917,11 +879,6 @@
       state.dayDataCache.set(ymd, normalized);
       return normalized;
     } catch (_) {
-      if (window.location.protocol === 'file:') {
-        const localData = buildLocalFileProtocolFallback(ymd);
-        state.dayDataCache.set(ymd, localData);
-        return localData;
-      }
       return null;
     }
   }

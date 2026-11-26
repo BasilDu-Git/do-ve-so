@@ -2,8 +2,9 @@ name: Update Lottery Results (32 Days)
 
 on:
   schedule:
-    # Chạy lúc 11:35 UTC mỗi ngày (tương ứng 18:35 giờ Việt Nam - Asia/Ho_Chi_Minh)
+    # Chạy lúc 11:35 UTC và 11:50 UTC mỗi ngày (tương ứng 18:35 và 18:50 giờ Việt Nam - Asia/Ho_Chi_Minh)
     - cron: '35 11 * * *'
+    - cron: '50 11 * * *'
   workflow_dispatch:
     inputs:
       date:
