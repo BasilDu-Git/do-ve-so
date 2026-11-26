@@ -30,14 +30,14 @@
     { code: 'hau-giang', name: 'Hậu Giang', region: 'MN', days: [6], aliases: ['hau giang', 'hg', 'xshg'] },
     { code: 'tien-giang', name: 'Tiền Giang', region: 'MN', days: [0], aliases: ['tien giang', 'tg', 'xstg'] },
     { code: 'kien-giang', name: 'Kiên Giang', region: 'MN', days: [0], aliases: ['kien giang', 'kg', 'xskg'] },
-    { code: 'da-lat', name: 'Đà Lạt', region: 'MN', days: [0], aliases: ['da lat', 'lam dong', 'da lat lam dong', 'dl', 'xsdl'] },
+    { code: 'da-lat', name: 'Đà Lạt', region: 'MN', days: [0], aliases: ['da lat', 'lam dong', 'da lat lam dong', 'dl', 'ld', 'xsdl', 'xsld'] },
 
     // --- 14 ĐÀI MIỀN TRUNG ---
     { code: 'thua-thien-hue', name: 'Thừa Thiên Huế', region: 'MT', days: [0, 1], aliases: ['thua thien hue', 'hue', 'tt hue', 'tth', 'xstth'] },
     { code: 'phu-yen', name: 'Phú Yên', region: 'MT', days: [1], aliases: ['phu yen', 'py', 'xspy'] },
     { code: 'dak-lak', name: 'Đắk Lắk', region: 'MT', days: [2], aliases: ['dak lak', 'dac lac', 'daklak', 'daclac', 'dlk', 'xsdlk'] },
-    { code: 'quang-nam', name: 'Quảng Nam', region: 'MT', days: [2], aliases: ['quang nam', 'qnm', 'qna', 'xsqnm'] },
-    { code: 'da-nang', name: 'Đà Nẵng', region: 'MT', days: [3, 6], aliases: ['da nang', 'dng', 'dna', 'xsdng'] },
+    { code: 'quang-nam', name: 'Quảng Nam', region: 'MT', days: [2], aliases: ['quang nam', 'qnm', 'qna', 'xsqnm', 'xsqna'] },
+    { code: 'da-nang', name: 'Đà Nẵng', region: 'MT', days: [3, 6], aliases: ['da nang', 'dng', 'dna', 'xsdng', 'xsdna'] },
     { code: 'khanh-hoa', name: 'Khánh Hòa', region: 'MT', days: [0, 3], aliases: ['khanh hoa', 'kh', 'xskh', 'nha trang'] },
     { code: 'binh-dinh', name: 'Bình Định', region: 'MT', days: [4], aliases: ['binh dinh', 'bdi', 'xsbdi'] },
     { code: 'quang-tri', name: 'Quảng Trị', region: 'MT', days: [4], aliases: ['quang tri', 'qt', 'xsqt'] },
@@ -122,14 +122,46 @@
   ];
 
   const LIVE_API_URL = 'https://api.383.im/lottery/live.json';
-  const POLL_INTERVAL_MS = 30000;
+  const XSKT_LIVE_HTTP = {
+    MN: 'https://tttt.xskt.com.vn/zzz/ttttxs-s.jsp?areaCode=MN&s=0',
+    MT: 'https://tttt.xskt.com.vn/zzz/ttttxs-s.jsp?areaCode=MT&s=0',
+    MB: 'https://ttttmb.xskt.com.vn/zzz/ttttxs-s.jsp?areaCode=MB&s=0'
+  };
+  const XSKT_LIVE_SSE = {
+    MN: 'https://njs.xskt.com.vn/sse?channel=XSKTMN',
+    MT: 'https://njs.xskt.com.vn/sse?channel=XSKTMT',
+    MB: 'https://njs.xskt.com.vn/sse?channel=XSKTMB'
+  };
+  const XSKT_DIRECT_HTML = {
+    MN: 'https://xskt.com.vn/xsmn',
+    MT: 'https://xskt.com.vn/xsmt',
+    MB: 'https://xskt.com.vn/xsmb'
+  };
+  const XSKT_PRV_CODE_MAP = {
+    HCM: 'tp-hcm', DT: 'dong-thap', CM: 'ca-mau',
+    BT: 'ben-tre', VT: 'vung-tau', BL: 'bac-lieu',
+    DN: 'dong-nai', CT: 'can-tho', ST: 'soc-trang',
+    TN: 'tay-ninh', AG: 'an-giang', BTH: 'binh-thuan',
+    VL: 'vinh-long', BD: 'binh-duong', TV: 'tra-vinh',
+    LA: 'long-an', BP: 'binh-phuoc', HG: 'hau-giang',
+    TG: 'tien-giang', KG: 'kien-giang', LD: 'da-lat', DL: 'da-lat',
+    TTH: 'thua-thien-hue', PY: 'phu-yen',
+    DLK: 'dak-lak', QNM: 'quang-nam', QNA: 'quang-nam',
+    DNG: 'da-nang', DNA: 'da-nang', KH: 'khanh-hoa',
+    BDI: 'binh-dinh', QT: 'quang-tri', QB: 'quang-binh',
+    GL: 'gia-lai', NT: 'ninh-thuan',
+    QNG: 'quang-ngai', DNO: 'dak-nong', KT: 'kon-tum',
+    MB: 'mien-bac'
+  };
+
+  const POLL_INTERVAL_MS = 5000;
   const MAX_DAYS_BACK = 31;
   const RETENTION_DAYS = 32;
   const THEME_STORAGE_KEY = 'doveso_theme';
 
   const T_POLL_START = 16 * 3600;
   const T_FIRST_DRAW = 16 * 3600 + 15 * 60;
-  const T_STOP_POLL = 18 * 3600 + 30 * 60;
+  const T_STOP_POLL = 18 * 3600 + 45 * 60;
 
   const DOW_NAMES_VI = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
@@ -561,27 +593,87 @@
     return out;
   }
 
-  function normalizeStationEntry(rawEntry, fallbackName, region, ymd) {
-    if (!rawEntry || typeof rawEntry !== 'object') return null;
-    const rawName = rawEntry.name || rawEntry.station || rawEntry.province || rawEntry.dai || rawEntry.title || fallbackName || (region === 'MB' ? 'Miền Bắc' : '');
-    const matched = resolveStation(rawName, ymd) || (region === 'MB' ? STATION_MAP.get('mien-bac') : null);
-    const resolvedRegion = region || matched?.region || 'MN';
+  function parseMBSpecialCodesText(rawText) {
+    const clean = String(rawText || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!clean) return [];
 
-    const prizeContainer = rawEntry.prizes || rawEntry.results || rawEntry.giai || rawEntry.data || rawEntry;
+    const parenMatch = clean.match(/((?:\d{1,2}[\s,\-]+)+\d{1,2}|\d{1,2})\s*\(\s*([A-Z]{1,4})\s*\)/i);
+    if (parenMatch) {
+      const nums = parenMatch[1].match(/\d{1,2}/g) || [];
+      const suffix = parenMatch[2].toUpperCase();
+      if (nums.length > 0) return nums.map(n => `${n}${suffix}`);
+    }
+
+    const beforeLinks = clean.split(/xsmb|in vé|in ve/i)[0] || clean;
+    const directCodes = beforeLinks.match(/\b\d{1,2}[A-Z]{1,4}\b/gi) || [];
+    return directCodes.map(c => c.toUpperCase());
+  }
+
+  function normalizeStationEntry(rawEntry, fallbackName, region, ymd) {
+    if (!rawEntry || typeof rawEntry !== 'object' || Array.isArray(rawEntry)) return null;
+    const rawName =
+      rawEntry.code ||
+      rawEntry.i ||
+      rawEntry.id ||
+      rawEntry.station ||
+      rawEntry.name ||
+      rawEntry.n ||
+      rawEntry.province ||
+      rawEntry.dai ||
+      rawEntry.title ||
+      fallbackName ||
+      (region === 'MB' ? 'Miền Bắc' : '');
+
+    const prvMappedCode = XSKT_PRV_CODE_MAP[String(rawName || '').trim().toUpperCase()];
+    const matched =
+      (prvMappedCode ? STATION_MAP.get(prvMappedCode) : null) ||
+      resolveStation(rawName, ymd) ||
+      (region === 'MB' ? STATION_MAP.get('mien-bac') : null);
+
+    // Tuyệt đối bỏ qua các thuộc tính metadata (như "ps", "state", "r", "d") không phải đài mở thưởng thật
+    if (!matched) return null;
+
+    const resolvedRegion = region || matched.region || 'MN';
+    if (region && matched.region !== region) return null;
+
+    const prizeContainer =
+      rawEntry.prizes ||
+      rawEntry.g ||
+      rawEntry.pr ||
+      rawEntry.results ||
+      rawEntry.giai ||
+      rawEntry.data ||
+      rawEntry;
     const prizes = normalizePrizesObject(prizeContainer, resolvedRegion);
 
     const dt = parseYMD(ymd);
     const dow = dt ? dt.getUTCDay() : 0;
-    const maDBRaw = rawEntry.maDB || rawEntry.madb || rawEntry.codes || rawEntry.kyHieu || rawEntry.ky_hieu || [];
+    const maDBRaw =
+      rawEntry.maDB ||
+      rawEntry.madb ||
+      rawEntry.ma_db ||
+      rawEntry.codes ||
+      rawEntry.kyHieu ||
+      rawEntry.ky_hieu ||
+      prizeContainer?.maDB ||
+      prizeContainer?.madb ||
+      prizeContainer?.ma_db ||
+      [];
     const maDB = Array.isArray(maDBRaw)
-      ? maDBRaw.map(String)
+      ? maDBRaw.map(String).map(s => s.trim()).filter(Boolean)
       : typeof maDBRaw === 'string'
-        ? maDBRaw.split(/[\s,\-|;/]+/).filter(Boolean)
+        ? (parseMBSpecialCodesText(maDBRaw).length > 0
+            ? parseMBSpecialCodesText(maDBRaw)
+            : maDBRaw.split(/[\s,\-|;/]+/).filter(Boolean))
         : [];
 
     return {
-      code: matched ? matched.code : normalizeText(rawName).replace(/\s+/g, '-'),
-      name: matched ? matched.name : String(rawName || 'Đài mở thưởng'),
+      code: matched.code,
+      name: matched.name,
       subtitle: rawEntry.subtitle || (resolvedRegion === 'MB' ? MB_SUBTITLE_BY_DOW[dow] : undefined),
       maDB,
       prizes,
@@ -593,6 +685,11 @@
     const skeleton = createEmptyDaySkeleton(targetYmd);
     if (!raw || typeof raw !== 'object') return skeleton;
 
+    // Nếu payload tổng có trường date rõ ràng khác ngày đang cần (và không chứa từng miền riêng có date riêng) thì bỏ qua
+    if (raw.date && /^\d{4}-\d{2}-\d{2}$/.test(String(raw.date)) && String(raw.date) !== targetYmd) {
+      return skeleton;
+    }
+
     const root = raw.regions || raw.data || raw.results || raw;
 
     const regionKeyMap = {
@@ -601,19 +698,29 @@
       MB: ['MB', 'mb', 'xsmb', 'XSMB', 'bac', 'mienBac', 'mien_bac', 'mien-bac', 'north']
     };
 
+    // Chỉ gộp vào đúng các đài có lịch mở thưởng trong ngày của miền đó (tuyệt đối không push cột lạ như "ps")
     const mergeStationIntoSkeleton = (region, stObj) => {
       if (!stObj) return;
       const list = skeleton.regions[region];
+      if (!Array.isArray(list)) return;
       const idx = list.findIndex(item => item.code === stObj.code);
-      if (idx >= 0) {
-        list[idx] = {
-          ...list[idx],
-          ...stObj,
-          prizes: stObj.prizes
-        };
-      } else {
-        list.push(stObj);
+      if (idx < 0) return;
+
+      const existing = list[idx];
+      const rows = region === 'MB' ? PRIZE_ROWS_MB : PRIZE_ROWS_MN_MT;
+      const mergedPrizes = {};
+      for (const spec of rows) {
+        const prevArr = Array.isArray(existing.prizes?.[spec.key]) ? existing.prizes[spec.key] : [];
+        const nextArr = Array.isArray(stObj.prizes?.[spec.key]) ? stObj.prizes[spec.key] : [];
+        mergedPrizes[spec.key] = nextArr.length >= prevArr.length ? nextArr : prevArr;
       }
+
+      list[idx] = {
+        ...existing,
+        subtitle: stObj.subtitle || existing.subtitle,
+        maDB: Array.isArray(stObj.maDB) && stObj.maDB.length > 0 ? stObj.maDB : (existing.maDB || []),
+        prizes: mergedPrizes
+      };
     };
 
     let matchedAnyRegionKey = false;
@@ -629,23 +736,44 @@
             if (st) mergeStationIntoSkeleton(region, st);
           });
         } else if (typeof val === 'object') {
-          const looksLikeSingleStation =
-            region === 'MB' ||
-            val.prizes ||
-            val.DB ||
-            val.db ||
-            val.G1 ||
-            val.g1 ||
-            val.G7 ||
-            val.g7;
-          if (looksLikeSingleStation) {
-            const st = normalizeStationEntry(val, region === 'MB' ? 'Miền Bắc' : '', region, targetYmd);
-            if (st) mergeStationIntoSkeleton(region, st);
-          } else {
-            Object.entries(val).forEach(([k, v]) => {
-              const st = normalizeStationEntry(v, k, region, targetYmd);
+          // Bỏ qua miền có ngày mở thưởng cũ (VD: live.json lúc 17:35 có mb.d = hôm qua)
+          const regionDate = val.d || val.date;
+          if (regionDate && /^\d{4}-\d{2}-\d{2}$/.test(String(regionDate)) && String(regionDate) !== targetYmd) {
+            break;
+          }
+
+          if (Array.isArray(val.ps)) {
+            val.ps.forEach(item => {
+              const st = normalizeStationEntry(item, '', region, targetYmd);
               if (st) mergeStationIntoSkeleton(region, st);
             });
+          } else if (Array.isArray(val.stations)) {
+            val.stations.forEach(item => {
+              const st = normalizeStationEntry(item, '', region, targetYmd);
+              if (st) mergeStationIntoSkeleton(region, st);
+            });
+          } else {
+            const looksLikeSingleStation =
+              region === 'MB' ||
+              val.prizes ||
+              val.pr ||
+              val.g ||
+              val.DB ||
+              val.db ||
+              val.G1 ||
+              val.g1 ||
+              val.G7 ||
+              val.g7;
+            if (looksLikeSingleStation) {
+              const st = normalizeStationEntry(val, region === 'MB' ? 'Miền Bắc' : '', region, targetYmd);
+              if (st) mergeStationIntoSkeleton(region, st);
+            } else {
+              Object.entries(val).forEach(([k, v]) => {
+                if (!v || typeof v !== 'object' || Array.isArray(v)) return;
+                const st = normalizeStationEntry(v, k, region, targetYmd);
+                if (st) mergeStationIntoSkeleton(region, st);
+              });
+            }
           }
         }
         break;
@@ -668,10 +796,252 @@
     return skeleton;
   }
 
+  /**
+   * Parse chuỗi kết quả trực tiếp thời gian thực của xskt.com.vn (tttt.xskt.com.vn / njs.xskt.com.vn SSE).
+   * Vừa quay xong giải nào (từ G8 -> ĐB với MN/MT; từ G1 -> G7 -> Mã ĐB -> ĐB với MB) là trích xuất ngay giải đó.
+   */
+  function parseXsktLiveKqxs(rawKqxs, region, targetYmd) {
+    const skeleton = createEmptyDaySkeleton(targetYmd);
+    const text = String(rawKqxs || '').trim();
+    if (!text || text === '0' || text === '-1' || text.startsWith(';')) {
+      return skeleton;
+    }
+
+    if (region === 'MN' || region === 'MT') {
+      const colonIdx = text.indexOf(':');
+      if (colonIdx <= 0) return skeleton;
+
+      const rawCodes = text.slice(0, colonIdx).split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      const stationBlobs = text.slice(colonIdx + 1).split('|');
+      const list = skeleton.regions[region];
+      const scheduledCodeSet = new Set(list.map(s => s.code));
+
+      // Kiểm tra danh sách mã đài phải khớp các đài mở thưởng của đúng ngày targetYmd
+      const mappedCodes = rawCodes.map(c => XSKT_PRV_CODE_MAP[c] || resolveStation(c, targetYmd)?.code || null);
+      if (mappedCodes.length === 0 || !mappedCodes.every(c => c && scheduledCodeSet.has(c))) {
+        return skeleton;
+      }
+
+      const sliceSpecs = [
+        { key: 'G8', start: 0, count: 1, digits: 2 },
+        { key: 'G7', start: 2, count: 1, digits: 3 },
+        { key: 'G6', start: 5, count: 3, digits: 4 },
+        { key: 'G5', start: 17, count: 1, digits: 4 },
+        { key: 'G4', start: 21, count: 7, digits: 5 },
+        { key: 'G3', start: 56, count: 2, digits: 5 },
+        { key: 'G2', start: 66, count: 1, digits: 5 },
+        { key: 'G1', start: 71, count: 1, digits: 5 },
+        { key: 'DB', start: 76, count: 1, digits: 6 }
+      ];
+
+      mappedCodes.forEach((stCode, idx) => {
+        const targetSt = list.find(s => s.code === stCode);
+        if (!targetSt) return;
+        const rawDigits = String(stationBlobs[idx] || '').split(';')[0].trim();
+        if (!rawDigits) return;
+
+        for (const sp of sliceSpecs) {
+          const arr = [];
+          for (let k = 0; k < sp.count; k++) {
+            const from = sp.start + k * sp.digits;
+            const to = from + sp.digits;
+            if (rawDigits.length < to) break;
+            const seg = rawDigits.slice(from, to);
+            if (/^\d+$/.test(seg)) arr.push(seg);
+          }
+          targetSt.prizes[sp.key] = arr;
+        }
+      });
+
+      return skeleton;
+    }
+
+    if (region === 'MB') {
+      let body = text.split(';')[0].trim();
+      if (!body || body === '0' || body === '-1') return skeleton;
+
+      const mbSt = skeleton.regions.MB[0];
+      if (!mbSt) return skeleton;
+
+      const dashIdx = body.indexOf('-');
+      if (dashIdx >= 0) {
+        const dbPart = body.slice(dashIdx + 1).trim();
+        if (/^\d{5}$/.test(dbPart)) {
+          mbSt.prizes.DB = [dbPart];
+        }
+        body = body.slice(0, dashIdx);
+      }
+
+      const mbSliceSpecs = [
+        { key: 'G1', start: 0, count: 1, digits: 5 },
+        { key: 'G2', start: 5, count: 2, digits: 5 },
+        { key: 'G3', start: 15, count: 6, digits: 5 },
+        { key: 'G4', start: 45, count: 4, digits: 4 },
+        { key: 'G5', start: 61, count: 6, digits: 4 },
+        { key: 'G6', start: 85, count: 3, digits: 3 },
+        { key: 'G7', start: 94, count: 4, digits: 2 }
+      ];
+
+      for (const sp of mbSliceSpecs) {
+        const arr = [];
+        for (let k = 0; k < sp.count; k++) {
+          const from = sp.start + k * sp.digits;
+          const to = from + sp.digits;
+          if (body.length < to) break;
+          const seg = body.slice(from, to);
+          if (/^\d+$/.test(seg)) arr.push(seg);
+        }
+        mbSt.prizes[sp.key] = arr;
+      }
+
+      if (body.length > 102) {
+        const rawCodes = body.slice(102);
+        const parsedCodes = parseMBSpecialCodesText(rawCodes);
+        if (parsedCodes.length > 0) {
+          mbSt.maDB = parsedCodes;
+        }
+      }
+
+      return skeleton;
+    }
+
+    return skeleton;
+  }
+
+  /**
+   * Fallback: Parse trực tiếp bảng kết quả chính từ HTML xskt.com.vn trên trình duyệt (chấp nhận cả bảng đang quay dở).
+   */
+  function parseXsktHtmlClient(html, region, targetYmd) {
+    const skeleton = createEmptyDaySkeleton(targetYmd);
+    if (!html || typeof DOMParser === 'undefined') return skeleton;
+    try {
+      const [yyyy, mm, dd] = targetYmd.split('-').map(Number);
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const tableId = region === 'MN' ? 'MN0' : region === 'MT' ? 'MT0' : 'MB0';
+      const table = doc.getElementById(tableId) || doc.querySelector(region === 'MB' ? 'table.result' : 'table.tbl-xsmn');
+      if (!table) return skeleton;
+
+      const rows = Array.from(table.querySelectorAll('tr'));
+      if (rows.length < 8) return skeleton;
+
+      const headerHtml = rows[0].innerHTML || '';
+      const dateMatches = [...headerHtml.matchAll(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/g)];
+      if (dateMatches.length > 0) {
+        const exactMatch = dateMatches.every(m => Number(m[1]) === dd && Number(m[2]) === mm && Number(m[3]) === yyyy);
+        if (!exactMatch) return skeleton;
+      } else if (!headerHtml.includes(`${dd}/${mm}`) && !headerHtml.includes(`${dd}-${mm}`)) {
+        return skeleton;
+      }
+
+      const mapRowKey = txt => {
+        const n = normalizeText(txt).replace(/\s+/g, '');
+        if (n === 'db' || n === 'gdb' || n === 'giaidb' || n === 'giaidacbiet') return 'DB';
+        for (let i = 1; i <= 8; i++) {
+          if (n === `g${i}` || n === `giai${i}`) return `G${i}`;
+        }
+        return null;
+      };
+
+      if (region === 'MB') {
+        const mbSt = skeleton.regions.MB[0];
+        for (let r = 1; r < rows.length; r++) {
+          const rowTxt = rows[r].textContent || '';
+          if (/Mã\s*ĐB/i.test(rowTxt)) {
+            const codes = parseMBSpecialCodesText(rowTxt);
+            if (codes.length > 0) mbSt.maDB = codes;
+            continue;
+          }
+          const cells = rows[r].querySelectorAll('th, td');
+          if (cells.length < 2) continue;
+          const pKey = mapRowKey(cells[0].textContent || cells[0].getAttribute('title') || '');
+          const spec = PRIZE_ROWS_MB.find(x => x.key === pKey);
+          if (!spec) continue;
+          mbSt.prizes[pKey] = sanitizePrizeArray(cells[1].textContent || '', spec.digits, spec.count);
+        }
+      } else {
+        const list = skeleton.regions[region];
+        const ths = Array.from(rows[0].querySelectorAll('th, td'));
+        const colMap = [];
+        ths.forEach((th, idx) => {
+          if (idx === 0) return;
+          const matched = resolveStation(th.textContent || '', targetYmd);
+          if (matched && list.some(s => s.code === matched.code)) {
+            colMap.push({ idx, code: matched.code });
+          }
+        });
+        if (colMap.length === 0) return skeleton;
+
+        for (let r = 1; r < rows.length; r++) {
+          const cells = rows[r].querySelectorAll('th, td');
+          if (cells.length < 2) continue;
+          const pKey = mapRowKey(cells[0].textContent || cells[0].getAttribute('title') || '');
+          const spec = PRIZE_ROWS_MN_MT.find(x => x.key === pKey);
+          if (!spec) continue;
+          for (const col of colMap) {
+            if (col.idx < cells.length) {
+              const targetSt = list.find(s => s.code === col.code);
+              if (targetSt) {
+                targetSt.prizes[pKey] = sanitizePrizeArray(cells[col.idx].textContent || '', spec.digits, spec.count);
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return skeleton;
+  }
+
+  /**
+   * Gộp nhiều nguồn dữ liệu trong cùng 1 ngày (ưu tiên mảng giải có nhiều số hợp lệ nhất, giữ đúng thứ tự đài của lịch ngày).
+   */
+  function mergeDayDatasets(ymd, ...datasets) {
+    const merged = createEmptyDaySkeleton(ymd);
+    for (const ds of datasets) {
+      if (!ds || !ds.regions) continue;
+      for (const region of ['MN', 'MT', 'MB']) {
+        const rows = region === 'MB' ? PRIZE_ROWS_MB : PRIZE_ROWS_MN_MT;
+        const targetList = merged.regions[region] || [];
+        const srcList = ds.regions[region] || [];
+
+        for (const targetSt of targetList) {
+          const srcSt = srcList.find(s => s && s.code === targetSt.code);
+          if (!srcSt) continue;
+
+          if (srcSt.subtitle && !targetSt.subtitle) {
+            targetSt.subtitle = srcSt.subtitle;
+          }
+          if (Array.isArray(srcSt.maDB) && srcSt.maDB.length > (targetSt.maDB?.length || 0)) {
+            targetSt.maDB = [...srcSt.maDB];
+          }
+
+          for (const spec of rows) {
+            const curArr = Array.isArray(targetSt.prizes[spec.key]) ? targetSt.prizes[spec.key] : [];
+            const nextArr = sanitizePrizeArray(srcSt.prizes?.[spec.key], spec.digits, spec.count);
+            if (nextArr.length > curArr.length) {
+              targetSt.prizes[spec.key] = nextArr;
+            }
+          }
+        }
+      }
+    }
+    return merged;
+  }
+
   function isStationComplete(stationData, region) {
     if (!stationData || !stationData.prizes) return false;
     const rows = region === 'MB' ? PRIZE_ROWS_MB : PRIZE_ROWS_MN_MT;
-    return rows.every(r => Array.isArray(stationData.prizes[r.key]) && stationData.prizes[r.key].length >= r.count);
+    return rows.every(r => Array.isArray(stationData.prizes[r.key]) && stationData.prizes[r.key].length === r.count);
+  }
+
+  function isRegionComplete(dataset, region, ymd) {
+    const scheduled = getScheduledStationsForDate(ymd)[region] || [];
+    if (scheduled.length === 0) return false;
+    const stations = dataset?.regions?.[region] || [];
+    if (stations.length !== scheduled.length) return false;
+    return scheduled.every(sch => {
+      const stData = stations.find(s => s.code === sch.code);
+      return stData && isStationComplete(stData, region);
+    });
   }
 
   function hasAnyDrawnNumber(stationData) {
@@ -684,11 +1054,16 @@
   // ============================================================================
   const state = {
     selectedDate: '',
+    lastKnownTodayYmd: '',
     activeRegion: 'MN',
     selectedStation: null,
     dayDataCache: new Map(),
     liveDataToday: null,
+    liveDataDate: '',
+    isLoadingDate: false,
     pollTimerId: null,
+    pollInFlight: false,
+    sseMap: {},
     clockTimerId: null,
     flashTimerId: null,
     lastPollAt: 0,
@@ -801,15 +1176,47 @@
     try { picker.showPicker(); } catch (_) {}
   }
 
+  function getActiveDayDataset(ymd, vnNow) {
+    const vn = vnNow || getVNNow();
+    if (!parseYMD(ymd)) return createEmptyDaySkeleton(ymd);
+
+    if (ymd === vn.ymd) {
+      const liveForToday = state.liveDataDate === ymd ? state.liveDataToday : null;
+      const staticForToday = state.dayDataCache.get(ymd) || null;
+      return mergeDayDatasets(ymd, liveForToday, staticForToday);
+    }
+
+    return state.dayDataCache.get(ymd) || createEmptyDaySkeleton(ymd);
+  }
+
+  function isAllRegionsCompleteForToday(ymd, vnNow) {
+    const ds = getActiveDayDataset(ymd, vnNow);
+    return (
+      isRegionComplete(ds, 'MN', ymd) &&
+      isRegionComplete(ds, 'MT', ymd) &&
+      isRegionComplete(ds, 'MB', ymd)
+    );
+  }
+
+  function shouldPollToday(vn) {
+    if (vn.secOfDay < T_POLL_START) return false;
+    if (isAllRegionsCompleteForToday(vn.ymd, vn)) return false;
+    if (vn.secOfDay <= T_STOP_POLL) return true;
+    // Nếu sau 18:45 tới 19:30 mà MB vẫn chưa đủ giải (quay trễ), tiếp tục poll 5 giây cho tới khi đủ
+    if (vn.secOfDay <= 19 * 3600 + 30 * 60) return true;
+    return false;
+  }
+
   function getTodayPhase(vn) {
+    const poll = shouldPollToday(vn);
     if (vn.secOfDay < T_FIRST_DRAW) {
       return {
         uiState: 'waiting',
-        shouldPoll: vn.secOfDay >= T_POLL_START,
+        shouldPoll: poll,
         lockCheckBtn: true
       };
     }
-    if (vn.secOfDay <= T_STOP_POLL) {
+    if (poll) {
       return {
         uiState: 'live',
         shouldPoll: true,
@@ -824,7 +1231,8 @@
   }
 
   /**
-   * Trạng thái quay thưởng & đếm ngược riêng theo từng miền (MN: 16:15, MT: 17:15, MB: 18:15)
+   * Trạng thái quay thưởng & đếm ngược riêng theo từng miền (MN: 16:15, MT: 17:15, MB: 18:15).
+   * CHỈ báo "Đã có đủ kết quả" (complete) khi TẤT CẢ các đài của miền đó đã có đủ 100% số giải.
    */
   function getRegionDrawPhase(region, ymd, vnNow) {
     const vn = vnNow || getVNNow();
@@ -842,16 +1250,31 @@
     if (age < 0) {
       return { uiState: 'waiting', regMeta, remainSec: 0 };
     }
-    if (ymd !== vn.ymd) {
-      return { uiState: 'complete', regMeta, remainSec: 0 };
-    }
 
-    // Ngày hôm nay: kiểm tra theo giờ mở thưởng riêng của từng miền
-    const dataset = state.dayDataCache.get(ymd) || state.liveDataToday || null;
+    const dataset = getActiveDayDataset(ymd, vn);
     const stations = dataset?.regions?.[regKey] || [];
     const anyDrawn = stations.some(hasAnyDrawnNumber);
-    const allComplete = stations.length > 0 && stations.every(st => isStationComplete(st, regKey));
+    const allComplete = isRegionComplete(dataset, regKey, ymd);
 
+    // Đã có đủ tất cả các giải của toàn bộ các đài thuộc miền đó
+    if (allComplete) {
+      return {
+        uiState: 'complete',
+        regMeta,
+        remainSec: 0
+      };
+    }
+
+    // Ngày quá khứ nhưng dữ liệu chưa tải xong hoặc thiếu
+    if (ymd !== vn.ymd) {
+      return {
+        uiState: state.isLoadingDate ? 'loading' : (anyDrawn ? 'live' : 'pending'),
+        regMeta,
+        remainSec: 0
+      };
+    }
+
+    // Ngày hôm nay: trước giờ mở thưởng của miền đó và chưa có số nào quay ra
     if (vn.secOfDay < regMeta.startSec && !anyDrawn) {
       return {
         uiState: 'waiting',
@@ -860,52 +1283,198 @@
       };
     }
 
-    if (allComplete || vn.secOfDay > regMeta.endSec) {
+    // Trong khung đang quay thưởng (hoặc đã có một phần kết quả mà chưa đủ hết giải)
+    if (anyDrawn || vn.secOfDay <= regMeta.endSec + 2700) {
       return {
-        uiState: 'complete',
+        uiState: 'live',
         regMeta,
         remainSec: 0
       };
     }
 
     return {
-      uiState: 'live',
+      uiState: state.isLoadingDate ? 'loading' : 'pending',
       regMeta,
       remainSec: 0
     };
   }
 
-  async function fetchLiveApiOnce() {
-    const vn = getVNNow();
+  function applyIncomingLiveDataset(ymd, partialDataset) {
+    if (!partialDataset) return;
+    if (state.liveDataDate !== ymd || !state.liveDataToday) {
+      state.liveDataDate = ymd;
+      state.liveDataToday = createEmptyDaySkeleton(ymd);
+    }
+    state.liveDataToday = mergeDayDatasets(ymd, partialDataset, state.liveDataToday);
+  }
+
+  async function fetchXsktLiveRegionHttp(region, vn) {
+    const startGate = REGION_META[region].startSec - 5 * 60; // chỉ hỏi từ 5 phút trước giờ quay của miền đó
+    if (vn.secOfDay < startGate) return null;
+
+    const baseUrl = XSKT_LIVE_HTTP[region];
+    if (!baseUrl) return null;
+
+    try {
+      const sep = baseUrl.includes('?') ? '&' : '?';
+      const res = await fetch(`${baseUrl}${sep}rr=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const json = await res.json();
+      if (!json || typeof json.kqxs !== 'string') return null;
+      return parseXsktLiveKqxs(json.kqxs, region, vn.ymd);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function fetchXsktDirectHtmlFallback(region, vn) {
+    if (vn.secOfDay < REGION_META[region].startSec) return null;
+    const url = XSKT_DIRECT_HTML[region];
+    if (!url) return null;
+    try {
+      const res = await fetch(`${url}?_t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const html = await res.text();
+      return parseXsktHtmlClient(html, region, vn.ymd);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function fetchLiveApiJson(vn) {
     try {
       const url = `${LIVE_API_URL}${LIVE_API_URL.includes('?') ? '&' : '?'}_t=${Date.now()}`;
       const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) return null;
       const json = await res.json();
-      state.liveDataToday = normalizeLotteryPayload(json, vn.ymd);
+      return normalizeLotteryPayload(json, vn.ymd);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * Poll trực tiếp mỗi 5 giây đồng thời từ xskt.com.vn (endpoint live tttt) và https://api.383.im/lottery/live.json.
+   * Nếu cả 2 chưa trả số trong giờ đang quay thì fallback thêm fetch HTML trực tiếp từ xskt.com.vn.
+   */
+  async function fetchLiveApiOnce() {
+    if (state.pollInFlight) return state.liveDataToday;
+    state.pollInFlight = true;
+    const vn = getVNNow();
+
+    try {
+      if (state.liveDataDate !== vn.ymd || !state.liveDataToday) {
+        state.liveDataDate = vn.ymd;
+        state.liveDataToday = createEmptyDaySkeleton(vn.ymd);
+      }
+
+      const curDs = getActiveDayDataset(vn.ymd, vn);
+      const needMN = vn.secOfDay >= REGION_META.MN.startSec - 300 && !isRegionComplete(curDs, 'MN', vn.ymd);
+      const needMT = vn.secOfDay >= REGION_META.MT.startSec - 300 && !isRegionComplete(curDs, 'MT', vn.ymd);
+      const needMB = vn.secOfDay >= REGION_META.MB.startSec - 300 && !isRegionComplete(curDs, 'MB', vn.ymd);
+
+      const [xsktMN, xsktMT, xsktMB, api383] = await Promise.all([
+        needMN ? fetchXsktLiveRegionHttp('MN', vn) : Promise.resolve(null),
+        needMT ? fetchXsktLiveRegionHttp('MT', vn) : Promise.resolve(null),
+        needMB ? fetchXsktLiveRegionHttp('MB', vn) : Promise.resolve(null),
+        fetchLiveApiJson(vn)
+      ]);
+
+      // Ưu tiên xskt.com.vn trước, sau đó gộp bổ sung từ api.383.im
+      state.liveDataToday = mergeDayDatasets(vn.ymd, xsktMN, xsktMT, xsktMB, api383, state.liveDataToday);
+
+      // Nếu tới giờ quay của miền nào mà cả endpoint live lẫn API live đều chưa có số nào, thử thêm HTML trực tiếp xskt.com.vn
+      const fallbackTasks = [];
+      for (const reg of ['MN', 'MT', 'MB']) {
+        const regSts = state.liveDataToday?.regions?.[reg] || [];
+        const hasAny = regSts.some(hasAnyDrawnNumber);
+        if (!hasAny && vn.secOfDay >= REGION_META[reg].startSec && vn.secOfDay <= REGION_META[reg].endSec + 1800) {
+          fallbackTasks.push(fetchXsktDirectHtmlFallback(reg, vn));
+        }
+      }
+      if (fallbackTasks.length > 0) {
+        const htmlResults = await Promise.all(fallbackTasks);
+        state.liveDataToday = mergeDayDatasets(vn.ymd, ...htmlResults, state.liveDataToday);
+      }
+
       state.lastPollAt = Date.now();
       if (state.selectedDate === vn.ymd) {
         renderBoard();
       }
       return state.liveDataToday;
-    } catch (_) {
-      if (!state.liveDataToday) {
-        state.liveDataToday = createEmptyDaySkeleton(vn.ymd);
+    } finally {
+      state.pollInFlight = false;
+    }
+  }
+
+  /**
+   * Kết nối thêm luồng SSE thời gian thực (njs.xskt.com.vn) cho miền đang trong khung quay trực tiếp
+   * để nhận từng giải tức thì (< 1 giây) song song với vòng poll 5 giây.
+   */
+  function syncLiveSseConnections(vn) {
+    if (typeof EventSource === 'undefined') return;
+    const isViewingToday = state.selectedDate === vn.ymd;
+
+    for (const reg of ['MN', 'MT', 'MB']) {
+      const meta = REGION_META[reg];
+      const curDs = getActiveDayDataset(vn.ymd, vn);
+      const shouldConnect =
+        isViewingToday &&
+        vn.secOfDay >= meta.startSec - 180 &&
+        vn.secOfDay <= meta.endSec + 900 &&
+        !isRegionComplete(curDs, reg, vn.ymd);
+
+      if (shouldConnect && !state.sseMap[reg]) {
+        try {
+          const es = new EventSource(XSKT_LIVE_SSE[reg]);
+          const onPayload = evt => {
+            try {
+              const nowVn = getVNNow();
+              if (nowVn.secOfDay < meta.startSec - 180) return;
+              const data = JSON.parse(evt.data);
+              if (data && typeof data.kqxs === 'string') {
+                const parsed = parseXsktLiveKqxs(data.kqxs, reg, nowVn.ymd);
+                applyIncomingLiveDataset(nowVn.ymd, parsed);
+                if (state.selectedDate === nowVn.ymd) {
+                  renderBoard();
+                }
+              }
+            } catch (_) {}
+          };
+          es.addEventListener('init', onPayload);
+          es.addEventListener('update', onPayload);
+          es.onerror = () => {
+            try { es.close(); } catch (_) {}
+            delete state.sseMap[reg];
+          };
+          state.sseMap[reg] = es;
+        } catch (_) {}
+      } else if (!shouldConnect && state.sseMap[reg]) {
+        try { state.sseMap[reg].close(); } catch (_) {}
+        delete state.sseMap[reg];
       }
-      return state.liveDataToday;
+    }
+  }
+
+  function closeAllLiveSse() {
+    for (const reg of Object.keys(state.sseMap)) {
+      try { state.sseMap[reg].close(); } catch (_) {}
+      delete state.sseMap[reg];
     }
   }
 
   function startLivePolling() {
+    const vn = getVNNow();
+    syncLiveSseConnections(vn);
     if (state.pollTimerId !== null) return;
     fetchLiveApiOnce();
     state.pollTimerId = window.setInterval(() => {
-      const vn = getVNNow();
-      const phase = getTodayPhase(vn);
-      if (state.selectedDate !== vn.ymd || !phase.shouldPoll) {
+      const nowVn = getVNNow();
+      syncLiveSseConnections(nowVn);
+      if (state.selectedDate !== nowVn.ymd || !shouldPollToday(nowVn)) {
         stopLivePolling();
-        if (state.selectedDate === vn.ymd && phase.uiState === 'complete') {
-          loadDateData(vn.ymd);
+        if (state.selectedDate === nowVn.ymd) {
+          fetchStaticDateJson(nowVn.ymd, true).then(() => renderBoard());
         }
         return;
       }
@@ -918,14 +1487,16 @@
       window.clearInterval(state.pollTimerId);
       state.pollTimerId = null;
     }
+    closeAllLiveSse();
   }
 
-  async function fetchStaticDateJson(ymd) {
-    if (state.dayDataCache.has(ymd)) {
+  async function fetchStaticDateJson(ymd, bypassCache = false) {
+    if (!bypassCache && state.dayDataCache.has(ymd)) {
       return state.dayDataCache.get(ymd);
     }
     try {
-      const res = await fetch(`data/${ymd}.json`, { cache: 'no-cache' });
+      const qs = bypassCache ? `?_t=${Date.now()}` : '';
+      const res = await fetch(`data/${ymd}.json${qs}`, { cache: bypassCache ? 'no-store' : 'no-cache' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const raw = await res.json();
       const normalized = normalizeLotteryPayload(raw, ymd);
@@ -974,26 +1545,26 @@
     renderDateHelper(ymd, vn);
 
     if (ymd === vn.ymd) {
-      const phase = getTodayPhase(vn);
-      if (phase.shouldPoll) {
+      // Trước 16:00 hôm nay: chưa tới khung quay miền nào -> hiển thị bảng trống + đếm ngược theo miền
+      if (vn.secOfDay < T_POLL_START) {
+        stopLivePolling();
+        renderBoard();
+        return;
+      }
+
+      state.isLoadingDate = true;
+      renderBoard();
+
+      // Từ 16:00 trở đi: tải song song cả file data/YYYY-MM-DD.json (nếu có) và nguồn trực tiếp xskt + api live
+      const staticPromise = fetchStaticDateJson(ymd, true);
+      const livePromise = fetchLiveApiOnce();
+      await Promise.allSettled([staticPromise, livePromise]);
+      state.isLoadingDate = false;
+
+      if (shouldPollToday(getVNNow())) {
         startLivePolling();
       } else {
         stopLivePolling();
-      }
-
-      if (phase.uiState === 'waiting') {
-        renderBoard();
-        return;
-      }
-
-      if (phase.uiState === 'complete') {
-        let data = await fetchStaticDateJson(ymd);
-        if (!data) {
-          data = await fetchLiveApiOnce();
-          if (data) state.dayDataCache.set(ymd, data);
-        }
-        renderBoard();
-        return;
       }
 
       renderBoard();
@@ -1001,23 +1572,11 @@
     }
 
     stopLivePolling();
-    await fetchStaticDateJson(ymd);
+    state.isLoadingDate = true;
     renderBoard();
-  }
-
-  function getActiveDayDataset(ymd) {
-    const vn = getVNNow();
-    if (ymd === vn.ymd) {
-      const phase = getTodayPhase(vn);
-      if (phase.uiState === 'waiting') {
-        return createEmptyDaySkeleton(ymd);
-      }
-      if (phase.uiState === 'live') {
-        return state.liveDataToday || createEmptyDaySkeleton(ymd);
-      }
-      return state.dayDataCache.get(ymd) || state.liveDataToday || createEmptyDaySkeleton(ymd);
-    }
-    return state.dayDataCache.get(ymd) || createEmptyDaySkeleton(ymd);
+    await fetchStaticDateJson(ymd, false);
+    state.isLoadingDate = false;
+    renderBoard();
   }
 
   // ============================================================================
@@ -1025,7 +1584,22 @@
   // ============================================================================
   function renderClockAndLiveState() {
     const vn = getVNNow();
-    syncDatePickerLimits();
+
+    // Tự động chuyển sang ngày mới lúc 00:00 nửa đêm nếu người dùng đang ở ngày "hôm nay" cũ
+    if (state.lastKnownTodayYmd && state.lastKnownTodayYmd !== vn.ymd) {
+      const wasOnPrevToday = state.selectedDate === state.lastKnownTodayYmd;
+      state.lastKnownTodayYmd = vn.ymd;
+      state.liveDataToday = null;
+      state.liveDataDate = '';
+      syncDatePickerLimits();
+      if (wasOnPrevToday) {
+        setSelectedDate(vn.ymd, true);
+        return;
+      }
+    } else if (!state.lastKnownTodayYmd) {
+      state.lastKnownTodayYmd = vn.ymd;
+      syncDatePickerLimits();
+    }
 
     const hh = String(vn.hour).padStart(2, '0');
     const mm = String(vn.minute).padStart(2, '0');
@@ -1033,14 +1607,14 @@
     els.vnClock.textContent = `${hh}:${mm}:${ss} • ${vn.day}/${vn.month}/${vn.year}`;
 
     if (state.selectedDate === vn.ymd) {
-      const phase = getTodayPhase(vn);
-      if (phase.shouldPoll && state.pollTimerId === null) {
+      const wantPoll = shouldPollToday(vn);
+      if (wantPoll && state.pollTimerId === null) {
         startLivePolling();
-      } else if (!phase.shouldPoll && state.pollTimerId !== null) {
+      } else if (!wantPoll && state.pollTimerId !== null) {
         stopLivePolling();
-        if (phase.uiState === 'complete') {
-          loadDateData(vn.ymd);
-        }
+        fetchStaticDateJson(vn.ymd, true).then(() => renderBoard());
+      } else if (wantPoll) {
+        syncLiveSseConnections(vn);
       }
 
       const activeReg = state.activeRegion || 'MN';
@@ -1131,7 +1705,22 @@
     if (regPhase.uiState === 'live') {
       els.drawStatusBanner.setAttribute('data-state', 'live');
       els.drawStatusText.textContent = `Đang quay trực tiếp ${regMeta.name}`;
-      els.countdownText.textContent = `Mở thưởng ${regMeta.timeLabel} • Cập nhật tự động 30 giây/lần`;
+      els.countdownText.textContent = `Mở thưởng ${regMeta.timeLabel} • Cập nhật trực tiếp 5 giây/lần`;
+      els.countdownText.hidden = false;
+      return;
+    }
+
+    if (regPhase.uiState === 'loading') {
+      els.drawStatusBanner.setAttribute('data-state', 'waiting');
+      els.drawStatusText.textContent = `Đang tải kết quả ${regMeta.name}...`;
+      els.countdownText.hidden = true;
+      return;
+    }
+
+    if (regPhase.uiState === 'pending' || regPhase.uiState === 'invalid') {
+      els.drawStatusBanner.setAttribute('data-state', 'waiting');
+      els.drawStatusText.textContent = `Đang chờ cập nhật kết quả ${regMeta.name}`;
+      els.countdownText.textContent = `Khung mở thưởng ${regMeta.name}: ${regMeta.timeLabel}`;
       els.countdownText.hidden = false;
       return;
     }
@@ -1315,7 +1904,7 @@
       const codes = !isRegionWaiting && Array.isArray(mbSt?.maDB) ? mbSt.maDB : [];
       const codeContent = codes.length > 0
         ? `<div class="ma-db-list">${codes.map(c => `<span class="ma-db-chip">${escapeHtml(c)}</span>`).join('')}</div>`
-        : `<span class="prize-empty">—</span>`;
+        : (isToday && regPhase.uiState === 'live' ? `<span class="prize-drawing">Đang quay...</span>` : `<span class="prize-empty">—</span>`);
       maDbRowHtml = `
         <tr class="row-madb">
           <th scope="row" class="prize-label-cell">Mã ĐB</th>
@@ -1502,7 +2091,7 @@
     renderBoard();
 
     const partialNote = !isComplete
-      ? `<p class="result-note"><strong>Lưu ý:</strong> Đài ${escapeHtml(station.name)} đang quay trực tiếp, một số giải chưa quay xong. Kết quả sẽ được cập nhật tiếp sau mỗi 30 giây.</p>`
+      ? `<p class="result-note"><strong>Lưu ý:</strong> Đài ${escapeHtml(station.name)} đang quay trực tiếp, một số giải chưa quay xong. Kết quả đang được cập nhật trực tiếp mỗi 5 giây.</p>`
       : '';
 
     if (result.isWin) {
@@ -1669,6 +2258,7 @@
     if (!els.ticketForm) return;
 
     const vn = getVNNow();
+    state.lastKnownTodayYmd = vn.ymd;
     syncDatePickerLimits();
 
     state.selectedDate = vn.ymd;
@@ -1684,10 +2274,15 @@
   window.DoVeSoApp = {
     STATIONS,
     REGION_META,
+    POLL_INTERVAL_MS,
     normalizeText,
     resolveStation,
     evaluateTicket,
     normalizeLotteryPayload,
+    parseXsktLiveKqxs,
+    parseXsktHtmlClient,
+    mergeDayDatasets,
+    isRegionComplete,
     getVNNow,
     getRegionDrawPhase,
     diffDays,

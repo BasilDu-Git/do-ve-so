@@ -2,9 +2,17 @@ name: Update Lottery Results (32 Days)
 
 on:
   schedule:
-    # Chạy lúc 11:35 UTC và 11:50 UTC mỗi ngày (tương ứng 18:35 và 18:50 giờ Việt Nam - Asia/Ho_Chi_Minh)
+    # Giờ Việt Nam (Asia/Ho_Chi_Minh = UTC+7):
+    # - 09:40 UTC = 16:40 VN (ngay sau khi Miền Nam quay xong)
+    # - 10:40 UTC = 17:40 VN (ngay sau khi Miền Trung quay xong)
+    # - 11:35 UTC = 18:35 VN (ngay sau khi Miền Bắc quay xong)
+    # - 11:40 UTC = 18:40 VN (cập nhật đầy đủ cả 3 miền)
+    # - 11:55 UTC = 18:55 VN (chạy dự phòng nếu hàng đợi GitHub Actions trễ)
+    - cron: '40 9 * * *'
+    - cron: '40 10 * * *'
     - cron: '35 11 * * *'
-    - cron: '50 11 * * *'
+    - cron: '40 11 * * *'
+    - cron: '55 11 * * *'
   workflow_dispatch:
     inputs:
       date:
@@ -15,6 +23,10 @@ on:
         description: 'Số ngày lùi lại cần cập nhật bổ sung (VD: 1..32, mặc định 1)'
         required: false
         default: '1'
+
+concurrency:
+  group: update-lottery-data
+  cancel-in-progress: false
 
 permissions:
   contents: write

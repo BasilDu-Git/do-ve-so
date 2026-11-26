@@ -397,14 +397,18 @@ function parseMultiStationTable(html, region, ymd) {
     if (!headerRowMatchesExactDate(headerRow, ymd)) continue;
 
     const headerCells = extractCells(headerRow);
+    const dow = parseYMD(ymd).getUTCDay();
+    const expectedCodes = WEEKLY_SCHEDULE[region]?.[dow] || [];
     const stationColumns = [];
     headerCells.forEach((cell, idx) => {
       if (idx === 0) return;
       const st = matchStation(cleanCellText(cell), region);
-      if (st) stationColumns.push({ colIdx: idx, station: st });
+      if (st && expectedCodes.includes(st.code)) {
+        stationColumns.push({ colIdx: idx, station: st });
+      }
     });
 
-    if (stationColumns.length < 2) continue;
+    if (stationColumns.length !== expectedCodes.length) continue;
 
     const stationMap = new Map();
     for (const col of stationColumns) {
@@ -430,7 +434,11 @@ function parseMultiStationTable(html, region, ymd) {
       }
     }
 
-    const parsedStations = Array.from(stationMap.values());
+    const parsedByCode = new Map();
+    for (const stObj of stationMap.values()) {
+      parsedByCode.set(stObj.code, stObj);
+    }
+    const parsedStations = expectedCodes.map(c => parsedByCode.get(c)).filter(Boolean);
     const validation = validateRegionResult(region, parsedStations, ymd);
     if (validation.valid) {
       return parsedStations;
@@ -567,13 +575,9 @@ function parseRssFeed(xml, region, targetYmd) {
         }
         stationByCode.set(st.code, { code: st.code, name: st.name, prizes });
       }
-      // Sắp xếp lại theo thứ tự đài chuẩn của lịch mở thưởng trong ngày
       const dow = parseYMD(targetYmd).getUTCDay();
       const scheduledCodes = WEEKLY_SCHEDULE[region][dow] || [];
-      const orderedStations = [
-        ...scheduledCodes.map(c => stationByCode.get(c)).filter(Boolean),
-        ...Array.from(stationByCode.values()).filter(s => !scheduledCodes.includes(s.code))
-      ];
+      const orderedStations = scheduledCodes.map(c => stationByCode.get(c)).filter(Boolean);
       if (validateRegionResult(region, orderedStations, targetYmd).valid) {
         return orderedStations;
       }
@@ -602,8 +606,8 @@ function validateRegionResult(region, stations, ymd) {
   if (region === 'MB' && stations.length !== 1) {
     errors.push(`MB (${ymd}): Phải có đúng 1 đài Miền Bắc, nhận được ${stations.length}`);
   }
-  if ((region === 'MN' || region === 'MT') && stations.length < expectedCodes.length) {
-    errors.push(`${region} (${ymd}): Thiếu đài mở thưởng (cần ${expectedCodes.length} đài [${expectedCodes.join(', ')}], nhận được ${stations.length})`);
+  if ((region === 'MN' || region === 'MT') && stations.length !== expectedCodes.length) {
+    errors.push(`${region} (${ymd}): Số đài không khớp lịch mở thưởng (cần đúng ${expectedCodes.length} đài [${expectedCodes.join(', ')}], nhận được ${stations.length})`);
   }
 
   const seenCodes = new Set();
@@ -620,6 +624,9 @@ function validateRegionResult(region, stations, ymd) {
     const knownStation = STATIONS.find(s => s.code === st.code && s.region === region);
     if (!knownStation) {
       errors.push(`${region} (${ymd}): Đài ${st.code} không thuộc miền ${region}`);
+    }
+    if (!expectedCodes.includes(st.code)) {
+      errors.push(`${region} (${ymd}): Đài ${st.code} không có lịch mở thưởng vào ngày ${ymd}`);
     }
 
     for (const [prizeKey, spec] of Object.entries(specs)) {
@@ -827,11 +834,30 @@ async function fetchRegionForDate(region, ymd) {
 
 async function fetchAndSaveDate(ymd) {
   console.log(`\n=== Đang tải kết quả xổ số ngày ${ymd} ===`);
-  const [mn, mt, mb] = await Promise.all([
+  let [mn, mt, mb] = await Promise.all([
     fetchRegionForDate('MN', ymd),
     fetchRegionForDate('MT', ymd),
     fetchRegionForDate('MB', ymd)
   ]);
+
+  const outPath = path.join(DATA_DIR, `${ymd}.json`);
+  const todayVN = getTodayVN();
+
+  // Nếu đang cập nhật trong ngày hôm nay (VD: lúc 16:40, 17:40, 18:35), giữ lại miền đã lưu hợp lệ trước đó nếu lần fetch này bị nghẽn mạng tạm thời
+  if (ymd === todayVN && fs.existsSync(outPath)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(outPath, 'utf8'));
+      if (mn.length === 0 && Array.isArray(existing?.regions?.MN) && validateRegionResult('MN', existing.regions.MN, ymd).valid) {
+        mn = existing.regions.MN;
+      }
+      if (mt.length === 0 && Array.isArray(existing?.regions?.MT) && validateRegionResult('MT', existing.regions.MT, ymd).valid) {
+        mt = existing.regions.MT;
+      }
+      if (mb.length === 0 && Array.isArray(existing?.regions?.MB) && validateRegionResult('MB', existing.regions.MB, ymd).valid) {
+        mb = existing.regions.MB;
+      }
+    } catch (_) {}
+  }
 
   if (mn.length === 0 && mt.length === 0 && mb.length === 0) {
     throw new Error(`Chưa có hoặc không lấy được kết quả từ xskt.com.vn cho ngày ${ymd}`);
@@ -848,7 +874,6 @@ async function fetchAndSaveDate(ymd) {
   }
 
   // Nếu là ngày quá khứ (< todayVN), bắt buộc phải đủ cả 3 miền MN, MT, MB mới lưu
-  const todayVN = getTodayVN();
   if (diffDays(ymd, todayVN) > 0 && (mn.length === 0 || mt.length === 0 || mb.length === 0)) {
     const missing = [
       mn.length === 0 ? 'MN' : null,
@@ -858,7 +883,6 @@ async function fetchAndSaveDate(ymd) {
     throw new Error(`Ngày quá khứ ${ymd} thiếu kết quả miền: ${missing.join(', ')} — hủy lưu để tránh dữ liệu thiếu/sai`);
   }
 
-  const outPath = path.join(DATA_DIR, `${ymd}.json`);
   const payload = {
     date: ymd,
     dayOfWeek: parseYMD(ymd).getUTCDay(),
