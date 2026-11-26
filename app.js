@@ -93,9 +93,9 @@
   };
 
   const REGION_META = {
-    MN: { name: 'Miền Nam', startSec: 16 * 3600 + 15 * 60, timeLabel: '16:15', ticketDigits: 6 },
-    MT: { name: 'Miền Trung', startSec: 17 * 3600 + 15 * 60, timeLabel: '17:15', ticketDigits: 6 },
-    MB: { name: 'Miền Bắc', startSec: 18 * 3600 + 15 * 60, timeLabel: '18:15', ticketDigits: 5 }
+    MN: { name: 'Miền Nam', startSec: 16 * 3600 + 15 * 60, endSec: 16 * 3600 + 45 * 60, timeLabel: '16:15', ticketDigits: 6 },
+    MT: { name: 'Miền Trung', startSec: 17 * 3600 + 15 * 60, endSec: 17 * 3600 + 45 * 60, timeLabel: '17:15', ticketDigits: 6 },
+    MB: { name: 'Miền Bắc', startSec: 18 * 3600 + 15 * 60, endSec: 18 * 3600 + 30 * 60, timeLabel: '18:15', ticketDigits: 5 }
   };
 
   const PRIZE_ROWS_MN_MT = [
@@ -692,7 +692,8 @@
     clockTimerId: null,
     flashTimerId: null,
     lastPollAt: 0,
-    lastCheckHighlight: null
+    lastCheckHighlight: null,
+    lastRenderedPhaseKey: ''
   };
 
   const els = {};
@@ -819,6 +820,58 @@
       uiState: 'complete',
       shouldPoll: false,
       lockCheckBtn: false
+    };
+  }
+
+  /**
+   * Trạng thái quay thưởng & đếm ngược riêng theo từng miền (MN: 16:15, MT: 17:15, MB: 18:15)
+   */
+  function getRegionDrawPhase(region, ymd, vnNow) {
+    const vn = vnNow || getVNNow();
+    const regKey = REGION_META[region] ? region : 'MN';
+    const regMeta = REGION_META[regKey];
+
+    if (!parseYMD(ymd)) {
+      return { uiState: 'invalid', regMeta, remainSec: 0 };
+    }
+
+    const age = diffDays(ymd, vn.ymd);
+    if (age >= RETENTION_DAYS) {
+      return { uiState: 'expired', regMeta, remainSec: 0 };
+    }
+    if (age < 0) {
+      return { uiState: 'waiting', regMeta, remainSec: 0 };
+    }
+    if (ymd !== vn.ymd) {
+      return { uiState: 'complete', regMeta, remainSec: 0 };
+    }
+
+    // Ngày hôm nay: kiểm tra theo giờ mở thưởng riêng của từng miền
+    const dataset = state.dayDataCache.get(ymd) || state.liveDataToday || null;
+    const stations = dataset?.regions?.[regKey] || [];
+    const anyDrawn = stations.some(hasAnyDrawnNumber);
+    const allComplete = stations.length > 0 && stations.every(st => isStationComplete(st, regKey));
+
+    if (vn.secOfDay < regMeta.startSec && !anyDrawn) {
+      return {
+        uiState: 'waiting',
+        regMeta,
+        remainSec: regMeta.startSec - vn.secOfDay
+      };
+    }
+
+    if (allComplete || vn.secOfDay > regMeta.endSec) {
+      return {
+        uiState: 'complete',
+        regMeta,
+        remainSec: 0
+      };
+    }
+
+    return {
+      uiState: 'live',
+      regMeta,
+      remainSec: 0
     };
   }
 
@@ -989,7 +1042,15 @@
           loadDateData(vn.ymd);
         }
       }
-      updateStatusAndButtonLock(vn);
+
+      const activeReg = state.activeRegion || 'MN';
+      const regPhase = getRegionDrawPhase(activeReg, state.selectedDate, vn);
+      const nextPhaseKey = `${state.selectedDate}:${activeReg}:${regPhase.uiState}`;
+      if (state.lastRenderedPhaseKey && state.lastRenderedPhaseKey !== nextPhaseKey) {
+        renderBoard();
+      } else {
+        updateStatusAndButtonLock(vn);
+      }
     }
   }
 
@@ -999,8 +1060,10 @@
   function syncCheckButtonStationState(vnNow) {
     const vn = vnNow || getVNNow();
     const ymd = state.selectedDate;
-    const isTimeLocked = ymd === vn.ymd && getTodayPhase(vn).lockCheckBtn;
     const hasStation = !!state.selectedStation;
+    const checkReg = hasStation ? state.selectedStation.region : (state.activeRegion || 'MN');
+    const checkRegMeta = REGION_META[checkReg] || REGION_META.MN;
+    const isTimeLocked = ymd === vn.ymd && vn.secOfDay < checkRegMeta.startSec;
 
     // Dòng xác nhận ngay trên nút KIỂM TRA: "Bạn đang dò đài: Đồng Nai - 25/11/2026"
     if (hasStation && parseYMD(ymd)) {
@@ -1010,8 +1073,16 @@
       els.activeStationConfirm.hidden = true;
     }
 
-    // Khóa trước 16:15 hôm nay (dùng disabled thật)
+    // Khóa trước giờ mở thưởng của miền đang chọn hôm nay (dùng disabled thật)
     els.checkBtn.disabled = isTimeLocked;
+
+    if (isTimeLocked) {
+      const lockCdStr = formatCountdown(checkRegMeta.startSec - vn.secOfDay);
+      els.lockReasonText.textContent = `Chưa quay thưởng — Mở khóa ${checkRegMeta.name} lúc ${checkRegMeta.timeLabel} (còn ${lockCdStr})`;
+      els.lockReasonText.hidden = false;
+    } else {
+      els.lockReasonText.hidden = true;
+    }
 
     // Khi bỏ chọn hết đài: làm mờ nút KIỂM TRA (dùng aria-disabled + class để nếu bấm vào vẫn bắt được sự kiện cuộn lên Bước 2 & nhấp nháy nhắc)
     if (!hasStation) {
@@ -1028,60 +1099,46 @@
   function updateStatusAndButtonLock(vnNow) {
     const vn = vnNow || getVNNow();
     const ymd = state.selectedDate;
-    const age = diffDays(ymd, vn.ymd);
+    const activeReg = state.activeRegion || 'MN';
+    const regPhase = getRegionDrawPhase(activeReg, ymd, vn);
+    const { regMeta } = regPhase;
 
     els.resultsDateLabel.textContent = parseYMD(ymd) ? formatDisplayDate(ymd) : 'Chưa chọn ngày hợp lệ';
     syncCheckButtonStationState(vn);
 
-    if (age >= RETENTION_DAYS) {
+    if (regPhase.uiState === 'expired') {
       els.drawStatusBanner.setAttribute('data-state', 'expired');
       els.drawStatusText.textContent = 'Vé đã quá 30 ngày, hết hạn lĩnh thưởng';
       els.countdownText.hidden = true;
-      els.lockReasonText.hidden = true;
       return;
     }
 
-    if (ymd === vn.ymd) {
-      const phase = getTodayPhase(vn);
+    if (regPhase.uiState === 'waiting') {
+      const cdStr = formatCountdown(regPhase.remainSec);
+      const countdownMsg = `Đếm ngược tới giờ mở thưởng ${regMeta.name} (${regMeta.timeLabel}): ${cdStr}`;
+      els.drawStatusBanner.setAttribute('data-state', 'waiting');
+      els.drawStatusText.textContent = 'Chưa quay thưởng';
+      els.countdownText.textContent = countdownMsg;
+      els.countdownText.hidden = false;
 
-      if (phase.uiState === 'waiting') {
-        const remainSec = T_FIRST_DRAW - vn.secOfDay;
-        const cdStr = formatCountdown(remainSec);
-        els.drawStatusBanner.setAttribute('data-state', 'waiting');
-        els.drawStatusText.textContent = 'Chưa quay thưởng';
-        els.countdownText.textContent = `Đếm ngược tới 16:15: ${cdStr}`;
-        els.countdownText.hidden = false;
-
-        els.lockReasonText.textContent = `Chưa quay thưởng — Mở khóa lúc 16:15 (còn ${cdStr})`;
-        els.lockReasonText.hidden = false;
-
-        const inlineCd = els.resultTableContainer.querySelector('[data-inline-countdown]');
-        if (inlineCd) {
-          inlineCd.textContent = `Đếm ngược tới giờ mở thưởng Miền Nam (16:15): ${cdStr}`;
-        }
-        return;
+      const inlineCd = els.resultTableContainer.querySelector('[data-inline-countdown]');
+      if (inlineCd) {
+        inlineCd.textContent = countdownMsg;
       }
+      return;
+    }
 
-      if (phase.uiState === 'live') {
-        els.drawStatusBanner.setAttribute('data-state', 'live');
-        els.drawStatusText.textContent = 'Đang quay trực tiếp';
-        els.countdownText.textContent = 'Cập nhật tự động 30 giây/lần • Lịch: Nam 16:15 | Trung 17:15 | Bắc 18:15';
-        els.countdownText.hidden = false;
-        els.lockReasonText.hidden = true;
-        return;
-      }
-
-      els.drawStatusBanner.setAttribute('data-state', 'complete');
-      els.drawStatusText.textContent = 'Đã có đủ kết quả';
-      els.countdownText.hidden = true;
-      els.lockReasonText.hidden = true;
+    if (regPhase.uiState === 'live') {
+      els.drawStatusBanner.setAttribute('data-state', 'live');
+      els.drawStatusText.textContent = `Đang quay trực tiếp ${regMeta.name}`;
+      els.countdownText.textContent = `Mở thưởng ${regMeta.timeLabel} • Cập nhật tự động 30 giây/lần`;
+      els.countdownText.hidden = false;
       return;
     }
 
     els.drawStatusBanner.setAttribute('data-state', 'complete');
     els.drawStatusText.textContent = 'Đã có đủ kết quả';
     els.countdownText.hidden = true;
-    els.lockReasonText.hidden = true;
   }
 
   function renderDateHelper(ymd, vnNow) {
@@ -1216,35 +1273,24 @@
     }
 
     const isToday = ymd === vn.ymd;
-    const phase = isToday ? getTodayPhase(vn) : { uiState: 'complete' };
+    const region = state.activeRegion || 'MN';
+    const regPhase = getRegionDrawPhase(region, ymd, vn);
+    const { regMeta } = regPhase;
+    state.lastRenderedPhaseKey = `${ymd}:${region}:${regPhase.uiState}`;
+
     const dataset = getActiveDayDataset(ymd);
-    const region = state.activeRegion;
     const stations = dataset.regions[region] || [];
     const rowsSpec = region === 'MB' ? PRIZE_ROWS_MB : PRIZE_ROWS_MN_MT;
 
-    const isBeforeFirstDraw = isToday && phase.uiState === 'waiting';
-    const isRegionNotStartedYet =
-      isToday &&
-      phase.uiState === 'live' &&
-      vn.secOfDay < REGION_META[region].startSec &&
-      !stations.some(hasAnyDrawnNumber);
+    const isRegionWaiting = isToday && regPhase.uiState === 'waiting';
 
     let topNoticeHtml = '';
-    if (isBeforeFirstDraw) {
-      const cdStr = formatCountdown(T_FIRST_DRAW - vn.secOfDay);
+    if (isRegionWaiting) {
+      const cdStr = formatCountdown(regPhase.remainSec);
       topNoticeHtml = `
         <div class="empty-draw-notice">
           <h3>Chưa quay thưởng</h3>
-          <p data-inline-countdown>Đếm ngược tới giờ mở thưởng Miền Nam (16:15): ${escapeHtml(cdStr)}</p>
-        </div>
-      `;
-    } else if (isRegionNotStartedYet) {
-      const regMeta = REGION_META[region];
-      const cdRegion = formatCountdown(regMeta.startSec - vn.secOfDay);
-      topNoticeHtml = `
-        <div class="empty-draw-notice">
-          <h3>${escapeHtml(regMeta.name)} mở thưởng lúc ${escapeHtml(regMeta.timeLabel)}</h3>
-          <p>Đang chờ tới giờ quay (${escapeHtml(cdRegion)})</p>
+          <p data-inline-countdown>Đếm ngược tới giờ mở thưởng ${escapeHtml(regMeta.name)} (${escapeHtml(regMeta.timeLabel)}): ${escapeHtml(cdStr)}</p>
         </div>
       `;
     }
@@ -1266,7 +1312,7 @@
     let maDbRowHtml = '';
     if (region === 'MB') {
       const mbSt = stations[0];
-      const codes = !isBeforeFirstDraw && Array.isArray(mbSt?.maDB) ? mbSt.maDB : [];
+      const codes = !isRegionWaiting && Array.isArray(mbSt?.maDB) ? mbSt.maDB : [];
       const codeContent = codes.length > 0
         ? `<div class="ma-db-list">${codes.map(c => `<span class="ma-db-chip">${escapeHtml(c)}</span>`).join('')}</div>`
         : `<span class="prize-empty">—</span>`;
@@ -1289,7 +1335,7 @@
               state.lastCheckHighlight.stationCode === st.code;
             const tdClass = isCheckedStation ? ' class="is-checked-station"' : '';
 
-            if (isBeforeFirstDraw || isRegionNotStartedYet) {
+            if (isRegionWaiting) {
               return `<td${tdClass}><span class="prize-empty">—</span></td>`;
             }
 
@@ -1302,7 +1348,7 @@
               return `<span class="prize-num${isHit ? ' is-hit' : ''}">${escapeHtml(num)}</span>`;
             });
 
-            if (isToday && phase.uiState === 'live' && missingCount > 0) {
+            if (isToday && regPhase.uiState === 'live' && missingCount > 0) {
               renderedNums.push(`<span class="prize-drawing">Đang quay...</span>`);
             } else if (renderedNums.length === 0) {
               return `<td${tdClass}><span class="prize-empty">—</span></td>`;
@@ -1389,14 +1435,14 @@
       return;
     }
 
-    if (ymd === vn.ymd && getTodayPhase(vn).lockCheckBtn) {
-      return;
-    }
-
     // Nếu người dùng chưa chọn đài (bỏ chọn hết đài): báo đỏ, cuộn lên Bước 2 và nhấp nháy nhẹ 1 lần
     const station = state.selectedStation;
     if (!station) {
       alertAndFocusStep2();
+      return;
+    }
+
+    if (ymd === vn.ymd && vn.secOfDay < REGION_META[station.region].startSec) {
       return;
     }
 
@@ -1637,11 +1683,13 @@
 
   window.DoVeSoApp = {
     STATIONS,
+    REGION_META,
     normalizeText,
     resolveStation,
     evaluateTicket,
     normalizeLotteryPayload,
     getVNNow,
+    getRegionDrawPhase,
     diffDays,
     subtractDays
   };
